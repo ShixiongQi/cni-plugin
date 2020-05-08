@@ -24,6 +24,8 @@ import (
 	"runtime"
 	"time"
 
+	"log"
+
 	"github.com/containernetworking/cni/pkg/skel"
 	cnitypes "github.com/containernetworking/cni/pkg/types"
 	"github.com/containernetworking/cni/pkg/types/current"
@@ -101,6 +103,13 @@ func testConnection() error {
 }
 
 func cmdAdd(args *skel.CmdArgs) error {
+
+	logFileName := "/users/sqi009/calico_cmdAdd_info.log"
+	logFile, _  := os.Create(logFileName)
+	defer logFile.Close()
+	debugLog := log.New(logFile,"[Info: plugin.go]",log.Lmicroseconds)
+	debugLog.Println("[calico] cmdAdd start")
+
 	// Unmarshal the network config, and perform validation
 	conf := types.NetConf{}
 	if err := json.Unmarshal(args.StdinData, &conf); err != nil {
@@ -440,12 +449,19 @@ func cmdAdd(args *skel.CmdArgs) error {
 	for _, ip := range result.IPs {
 		ip.Gateway = nil
 	}
-
+	debugLog.Println("[calico] cmdAdd finish")
 	// Print result to stdout, in the format defined by the requested cniVersion.
 	return cnitypes.PrintResult(result, conf.CNIVersion)
 }
 
 func cmdDel(args *skel.CmdArgs) error {
+
+	logFileName := "/users/sqi009/calico_cmdDel_info.log"
+	logFile, _  := os.Create(logFileName)
+	defer logFile.Close()
+	debugLog := log.New(logFile,"[Info: plugin.go]",log.Lmicroseconds)
+	debugLog.Println("[calico] cmdDel start")
+
 	conf := types.NetConf{}
 	if err := json.Unmarshal(args.StdinData, &conf); err != nil {
 		return fmt.Errorf("failed to load netconf: %v", err)
@@ -530,7 +546,7 @@ func cmdDel(args *skel.CmdArgs) error {
 	if err != nil {
 		return err
 	}
-
+	debugLog.Println("[calico] cmdDel finish")
 	// Return the IPAM error if there was one. The IPAM error will be lost if there was also an error in cleaning up
 	// the device or endpoint, but crucially, the user will know the overall operation failed.
 	return ipamErr

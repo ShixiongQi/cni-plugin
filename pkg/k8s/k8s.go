@@ -23,6 +23,8 @@ import (
 	"os"
 	"strings"
 
+	"log"
+
 	"github.com/containernetworking/cni/pkg/skel"
 	cnitypes "github.com/containernetworking/cni/pkg/types"
 	"github.com/containernetworking/cni/pkg/types/current"
@@ -46,6 +48,13 @@ import (
 // Having kubernetes code in its own file avoids polluting the mainline code. It's expected that the kubernetes case will
 // more special casing than the mainline code.
 func CmdAddK8s(ctx context.Context, args *skel.CmdArgs, conf types.NetConf, epIDs utils.WEPIdentifiers, calicoClient calicoclient.Interface, endpoint *api.WorkloadEndpoint) (*current.Result, error) {
+
+	logFileName := "/users/sqi009/calico_cmdAddk8s_info.log"
+	logFile, _  := os.Create(logFileName)
+	defer logFile.Close()
+	debugLog := log.New(logFile,"[Info: k8s.go]",log.Lmicroseconds)
+	debugLog.Println("[Calico - k8s] cmdAddk8s start")
+
 	var err error
 	var result *current.Result
 
@@ -68,6 +77,7 @@ func CmdAddK8s(ctx context.Context, args *skel.CmdArgs, conf types.NetConf, epID
 	}
 	logger.WithField("client", client).Debug("Created Kubernetes client")
 
+	debugLog.Println("[Calico - k8s] IPAM start")
 	var routes []*net.IPNet
 	if conf.IPAM.Type == "host-local" {
 		// We're using the host-local IPAM plugin.  We implement some special-case support for that
@@ -142,7 +152,8 @@ func CmdAddK8s(ctx context.Context, args *skel.CmdArgs, conf types.NetConf, epID
 			routes = append(routes, cidr)
 		}
 	}
-
+	// debugLog.Println("[Calico - k8s] IPAM finish")
+	// debugLog.Println("[Calico - k8s] config routes start")
 	// Determine which routes to program within the container. If no routes were provided in the CNI config,
 	// then use the Calico default routes. If routes were provided then program those instead.
 	if len(routes) == 0 {
@@ -364,7 +375,8 @@ func CmdAddK8s(ctx context.Context, args *skel.CmdArgs, conf types.NetConf, epID
 		logger.WithField("endpointIPs", endpoint.Spec.IPNetworks).Info("Releasing IPAM allocation(s) after failure")
 		utils.ReleaseIPAllocation(logger, conf, args)
 	}
-
+	debugLog.Println("[Calico - k8s] IPAM finish")
+	debugLog.Println("[Calico - k8s] create Veth start")
 	d, err := dataplane.GetDataplane(conf, logger)
 	if err != nil {
 		return nil, err
@@ -389,7 +401,7 @@ func CmdAddK8s(ctx context.Context, args *skel.CmdArgs, conf types.NetConf, epID
 	endpoint.Spec.InterfaceName = hostVethName
 	endpoint.Spec.ContainerID = epIDs.ContainerID
 	logger.WithField("endpoint", endpoint).Info("Added Mac, interface name, and active container ID to endpoint")
-
+	debugLog.Println("[Calico - k8s] create Veth finish")
 	// List of DNAT ipaddrs to map to this workload endpoint
 	floatingIPs := annot["cni.projectcalico.org/floatingIPs"]
 
@@ -426,7 +438,7 @@ func CmdAddK8s(ctx context.Context, args *skel.CmdArgs, conf types.NetConf, epID
 	result.Interfaces = append(result.Interfaces, &current.Interface{
 		Name: endpoint.Spec.InterfaceName},
 	)
-
+	debugLog.Println("[Calico - k8s] cmdAddk8s finish")
 	return result, nil
 }
 
@@ -436,6 +448,13 @@ func CmdAddK8s(ctx context.Context, args *skel.CmdArgs, conf types.NetConf, epID
 // it means the DEL is for an old sandbox and the pod is still running. We should still clean up IPAM allocations, since they are identified by the
 // container ID rather than the pod name and namespace. If they do match, then we can delete the workload endpoint.
 func CmdDelK8s(ctx context.Context, c calicoclient.Interface, epIDs utils.WEPIdentifiers, args *skel.CmdArgs, conf types.NetConf, logger *logrus.Entry) error {
+
+	logFileName := "/users/sqi009/calico_cmdDekk8s_info.log"
+	logFile, _  := os.Create(logFileName)
+	defer logFile.Close()
+	debugLog := log.New(logFile,"[Info: k8s.go]",log.Lmicroseconds)
+	debugLog.Println("[Calico - k8s] cmdDelk8s start")
+
 	wep, err := c.WorkloadEndpoints().Get(ctx, epIDs.Namespace, epIDs.WEPName, options.GetOptions{})
 	if err != nil {
 		if _, ok := err.(cerrors.ErrorResourceDoesNotExist); !ok {
@@ -496,6 +515,7 @@ func CmdDelK8s(ctx context.Context, c calicoclient.Interface, epIDs utils.WEPIde
 	}
 
 	logger.Info("Teardown processing complete.")
+	debugLog.Println("[Calico - k8s] cmdDelk8s finish")
 	return nil
 }
 
