@@ -267,6 +267,7 @@ func CmdAddK8s(ctx context.Context, args *skel.CmdArgs, conf types.NetConf, epID
 	// Switch based on which annotations are passed or not passed.
 	switch {
 	case ipAddrs == "" && ipAddrsNoIpam == "":
+		debugLog.Println("1")
 		// Call the IPAM plugin.
 		result, err = utils.AddIPAM(conf, args, logger)
 		if err != nil {
@@ -274,12 +275,14 @@ func CmdAddK8s(ctx context.Context, args *skel.CmdArgs, conf types.NetConf, epID
 		}
 
 	case ipAddrs != "" && ipAddrsNoIpam != "":
+		debugLog.Println("2")
 		// Can't have both ipAddrs and ipAddrsNoIpam annotations at the same time.
 		e := fmt.Errorf("can't have both annotations: 'ipAddrs' and 'ipAddrsNoIpam' in use at the same time")
 		logger.Error(e)
 		return nil, e
 
 	case ipAddrsNoIpam != "":
+		debugLog.Println("3")
 		// Validate that we're allowed to use this feature.
 		if conf.IPAM.Type != "calico-ipam" {
 			e := fmt.Errorf("ipAddrsNoIpam is not compatible with configured IPAM: %s", conf.IPAM.Type)
@@ -311,6 +314,7 @@ func CmdAddK8s(ctx context.Context, args *skel.CmdArgs, conf types.NetConf, epID
 		}
 
 	case ipAddrs != "":
+		debugLog.Println("4")
 		// Validate that we're allowed to use this feature.
 		if conf.IPAM.Type != "calico-ipam" {
 			e := fmt.Errorf("ipAddrs is not compatible with configured IPAM: %s", conf.IPAM.Type)
