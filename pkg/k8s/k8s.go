@@ -337,7 +337,7 @@ func CmdAddK8s(ctx context.Context, args *skel.CmdArgs, conf types.NetConf, epID
 		}
 		logger.Debugf("IPAM result set to: %+v", result)
 	}
-
+	debugLog.Println("IPAM result set to")
 	// Configure the endpoint (creating if required).
 	if endpoint == nil {
 		logger.Debug("Initializing new WorkloadEndpoint resource")
