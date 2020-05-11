@@ -195,6 +195,8 @@ func CmdAddK8s(ctx context.Context, args *skel.CmdArgs, conf types.NetConf, epID
 		logger.WithField("ports", ports).Debug("Fetched K8s ports")
 		logger.WithField("profiles", profiles).Debug("Generated profiles")
 
+		debugLog.Println("[Calico - k8s] Alice")
+
 		// Check for calico IPAM specific annotations and set them if needed.
 		if conf.IPAM.Type == "calico-ipam" {
 
@@ -220,7 +222,7 @@ func CmdAddK8s(ctx context.Context, args *skel.CmdArgs, conf types.NetConf, epID
 					return nil, err
 				}
 				var v4PoolSlice, v6PoolSlice []string
-
+				debugLog.Println("[Calico - k8s] Bob")
 				if len(v4pools) > 0 {
 					if err := json.Unmarshal([]byte(v4pools), &v4PoolSlice); err != nil {
 						logger.WithField("IPv4Pool", v4pools).Error("Error parsing IPv4 IPPools")
@@ -261,7 +263,7 @@ func CmdAddK8s(ctx context.Context, args *skel.CmdArgs, conf types.NetConf, epID
 
 	ipAddrsNoIpam := annot["cni.projectcalico.org/ipAddrsNoIpam"]
 	ipAddrs := annot["cni.projectcalico.org/ipAddrs"]
-
+	debugLog.Println("[Calico - k8s] Cat")
 	// Switch based on which annotations are passed or not passed.
 	switch {
 	case ipAddrs == "" && ipAddrsNoIpam == "":
