@@ -174,7 +174,7 @@ func CmdAddK8s(ctx context.Context, args *skel.CmdArgs, conf types.NetConf, epID
 	var ports []api.EndpointPort
 	var profiles []string
 	var generateName string
-
+	debugLog.Println("[Calico - k8s] host-local finish")
 	// Only attempt to fetch the labels and annotations from Kubernetes
 	// if the policy type has been set to "k8s". This allows users to
 	// run the plugin under Kubernetes without needing it to access the
