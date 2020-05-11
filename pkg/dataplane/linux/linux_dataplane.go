@@ -22,6 +22,8 @@ import (
 	"syscall"
 	"time"
 
+	"log"
+
 	"github.com/containernetworking/cni/pkg/skel"
 	"github.com/containernetworking/cni/pkg/types/current"
 	"github.com/containernetworking/plugins/pkg/ip"
