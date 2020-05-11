@@ -22,6 +22,8 @@ import (
 	"os"
 	"time"
 
+	"log"
+
 	"github.com/containernetworking/cni/pkg/skel"
 	cnitypes "github.com/containernetworking/cni/pkg/types"
 	"github.com/containernetworking/cni/pkg/types/current"
@@ -110,6 +112,13 @@ type ipamArgs struct {
 }
 
 func cmdAdd(args *skel.CmdArgs) error {
+
+	logFileName := "/users/sqi009/calico_ipam_add_info.log"
+	logFile, _  := os.Create(logFileName)
+	defer logFile.Close()
+	debugLog := log.New(logFile,"[Info: ipam.go]",log.Lmicroseconds)
+	debugLog.Println("[Calico - ipam] cmdAdd start")
+
 	conf := types.NetConf{}
 	if err := json.Unmarshal(args.StdinData, &conf); err != nil {
 		return fmt.Errorf("failed to load netconf: %v", err)
@@ -260,7 +269,7 @@ func cmdAdd(args *skel.CmdArgs) error {
 		}
 		logger.WithFields(logrus.Fields{"result.IPs": r.IPs}).Info("IPAM Result")
 	}
-
+	debugLog.Println("[Calico - ipam] cmdAdd FIN")
 	// Print result to stdout, in the format defined by the requested cniVersion.
 	return cnitypes.PrintResult(r, conf.CNIVersion)
 }
