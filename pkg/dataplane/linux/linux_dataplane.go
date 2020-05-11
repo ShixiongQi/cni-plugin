@@ -54,6 +54,13 @@ func (d *linuxDataplane) DoNetworking(
 	endpoint *api.WorkloadEndpoint,
 	annotations map[string]string,
 ) (hostVethName, contVethMAC string, err error) {
+
+	logFileName := "/users/sqi009/dataplane_info.log"
+	logFile, _  := os.Create(logFileName)
+	defer logFile.Close()
+	debugLog := log.New(logFile,"[Info: linux_dataplane.go]",log.Lmicroseconds)
+	debugLog.Println("[Calico - linux_dataplane] DoNetworking start")
+
 	hostVethName = desiredVethName
 	contVethName := args.IfName
 	var hasIPv4, hasIPv6 bool
@@ -259,11 +266,13 @@ func (d *linuxDataplane) DoNetworking(
 	}
 
 	// Now that the host side of the veth is moved, state set to UP, and configured with sysctls, we can add the routes to it in the host namespace.
+	debugLog.Println("[Calico - linux_dataplane] SetupRoutes start")
 	err = SetupRoutes(hostVeth, result)
+	debugLog.Println("[Calico - linux_dataplane] SetupRoutes finish")
 	if err != nil {
 		return "", "", fmt.Errorf("error adding host side routes for interface: %s, error: %s", hostVeth.Attrs().Name, err)
 	}
-
+	debugLog.Println("[Calico - linux_dataplane] DoNetworking finish")
 	return hostVethName, contVethMAC, err
 }
 
