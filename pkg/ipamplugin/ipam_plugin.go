@@ -206,7 +206,7 @@ func cmdAdd(args *skel.CmdArgs) error {
 			logger.WithField("result.IPs", ipamArgs.IP).Info("Appending an IPv4 address to the result")
 		}
 	} else {
-		debugLog.Println("[Calico - ipam] assign IP 2")
+		debugLog.Println("[Calico - ipam] assign IP 2")//
 		// Default to assigning an IPv4 address
 		num4 := 1
 		if conf.IPAM.AssignIpv4 != nil && *conf.IPAM.AssignIpv4 == "false" {
@@ -232,7 +232,7 @@ func cmdAdd(args *skel.CmdArgs) error {
 		}
 
 		logger.Infof("Calico CNI IPAM handle=%s", handleID)
-		debugLog.Println("Calico CNI IPAM handle=%s", handleID)
+		debugLog.Println("Calico CNI IPAM handle=%s", handleID)//
 		assignArgs := ipam.AutoAssignArgs{
 			Num4:      num4,
 			Num6:      num6,
@@ -245,7 +245,7 @@ func cmdAdd(args *skel.CmdArgs) error {
 		logger.WithField("assignArgs", assignArgs).Info("Auto assigning IP")
 		assignedV4, assignedV6, err := calicoClient.IPAM().AutoAssign(ctx, assignArgs)
 		logger.Infof("Calico CNI IPAM assigned addresses IPv4=%v IPv6=%v", assignedV4, assignedV6)
-		debugLog.Println("Calico CNI IPAM assigned addresses IPv4=%v IPv6=%v", assignedV4, assignedV6)
+		debugLog.Println("Calico CNI IPAM assigned addresses IPv4=%v IPv6=%v", assignedV4, assignedV6)//
 		if err != nil {
 			return err
 		}
