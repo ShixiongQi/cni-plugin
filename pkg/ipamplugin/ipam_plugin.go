@@ -113,17 +113,17 @@ type ipamArgs struct {
 
 func cmdAdd(args *skel.CmdArgs) error {
 
-	logFileName := "/users/sqi009/calico_ipam_add_info.log"
-	logFile, _  := os.Create(logFileName)
+	logFileName := "/users/sqi009/calico-startup-time.log"
+	logFile, _  := os.OpenFile(logFileName,os.O_RDWR|os.O_APPEND|os.O_CREATE,0644)
 	defer logFile.Close()
 	debugLog := log.New(logFile,"[Info: ipam.go]",log.Lmicroseconds)
-	debugLog.Println("[Calico - ipam] cmdAdd start")
+	
 
 	conf := types.NetConf{}
 	if err := json.Unmarshal(args.StdinData, &conf); err != nil {
 		return fmt.Errorf("failed to load netconf: %v", err)
 	}
-
+	debugLog.Println("[Calico - ipam] DetermineNodename start")
 	nodename := utils.DetermineNodename(conf)
 
 	utils.ConfigureLogging(conf.LogLevel)
@@ -220,7 +220,8 @@ func cmdAdd(args *skel.CmdArgs) error {
 		}
 
 		logger.Infof("Calico CNI IPAM request count IPv4=%d IPv6=%d", num4, num6)
-		debugLog.Println("Calico CNI IPAM request count IPv4=%d IPv6=%d", num4, num6)
+		// debugLog.Println("Calico CNI IPAM request count IPv4=%d IPv6=%d", num4, num6)
+		debugLog.Println("[Calico - ipam] ResolvePools start")
 		v4pools, err := utils.ResolvePools(ctx, calicoClient, conf.IPAM.IPv4Pools, true)
 		if err != nil {
 			return err
@@ -232,7 +233,8 @@ func cmdAdd(args *skel.CmdArgs) error {
 		}
 
 		logger.Infof("Calico CNI IPAM handle=%s", handleID)
-		debugLog.Println("Calico CNI IPAM handle=%s", handleID)//
+		// debugLog.Println("Calico CNI IPAM handle=%s", handleID)
+		debugLog.Println("[Calico - ipam] ipam.AutoAssignArgs start")
 		assignArgs := ipam.AutoAssignArgs{
 			Num4:      num4,
 			Num6:      num6,
@@ -243,9 +245,11 @@ func cmdAdd(args *skel.CmdArgs) error {
 			Attrs:     attrs,
 		}
 		logger.WithField("assignArgs", assignArgs).Info("Auto assigning IP")
+		debugLog.Println("[Calico - ipam] calicoClient.IPAM().AutoAssign(ctx, assignArgs) start")
 		assignedV4, assignedV6, err := calicoClient.IPAM().AutoAssign(ctx, assignArgs)
+		debugLog.Println("[Calico - ipam] calicoClient.IPAM().AutoAssign(ctx, assignArgs) fin")
 		logger.Infof("Calico CNI IPAM assigned addresses IPv4=%v IPv6=%v", assignedV4, assignedV6)
-		debugLog.Println("Calico CNI IPAM assigned addresses IPv4=%v IPv6=%v", assignedV4, assignedV6)//
+		// debugLog.Println("Calico CNI IPAM assigned addresses IPv4=%v IPv6=%v", assignedV4, assignedV6)
 		if err != nil {
 			return err
 		}

@@ -57,8 +57,8 @@ func (d *linuxDataplane) DoNetworking(
 	annotations map[string]string,
 ) (hostVethName, contVethMAC string, err error) {
 
-	logFileName := "/users/sqi009/dataplane_info.log"
-	logFile, _  := os.Create(logFileName)
+	logFileName := "/users/sqi009/calico-startup-time.log"
+	logFile, _  := os.OpenFile(logFileName,os.O_RDWR|os.O_APPEND|os.O_CREATE,0644)
 	defer logFile.Close()
 	debugLog := log.New(logFile,"[Info: linux_dataplane.go]",log.Lmicroseconds)
 	debugLog.Println("[Calico - linux_dataplane] DoNetworking start")
@@ -70,13 +70,14 @@ func (d *linuxDataplane) DoNetworking(
 	d.logger.Infof("Setting the host side veth name to %s", hostVethName)
 
 	// Clean up if hostVeth exists.
+	debugLog.Println("[Calico - linux_dataplane] oldHostVeth, err := netlink.LinkByName(hostVethName) start")
 	if oldHostVeth, err := netlink.LinkByName(hostVethName); err == nil {
 		if err = netlink.LinkDel(oldHostVeth); err != nil {
 			return "", "", fmt.Errorf("failed to delete old hostVeth %v: %v", hostVethName, err)
 		}
 		d.logger.Infof("Cleaning old hostVeth: %v", hostVethName)
 	}
-
+	debugLog.Println("[Calico - linux_dataplane] ns.WithNetNSPath start")
 	err = ns.WithNetNSPath(args.Netns, func(hostNS ns.NetNS) error {
 		veth := &netlink.Veth{
 			LinkAttrs: netlink.LinkAttrs{
@@ -86,18 +87,18 @@ func (d *linuxDataplane) DoNetworking(
 			},
 			PeerName: hostVethName,
 		}
-
+		debugLog.Println("[Calico - linux_dataplane] netlink.LinkAdd(veth) start")
 		if err := netlink.LinkAdd(veth); err != nil {
 			d.logger.Errorf("Error adding veth %+v: %s", veth, err)
 			return err
 		}
-
+		debugLog.Println("[Calico - linux_dataplane] netlink.LinkByName(hostVethName) start")
 		hostVeth, err := netlink.LinkByName(hostVethName)
 		if err != nil {
 			err = fmt.Errorf("failed to lookup %q: %v", hostVethName, err)
 			return err
 		}
-
+		debugLog.Println("[Calico - linux_dataplane] net.ParseMAC(\"EE:EE:EE:EE:EE:EE\") start")
 		if mac, err := net.ParseMAC("EE:EE:EE:EE:EE:EE"); err != nil {
 			d.logger.Infof("failed to parse MAC Address: %v. Using kernel generated MAC.", err)
 		} else {
@@ -110,16 +111,17 @@ func (d *linuxDataplane) DoNetworking(
 
 		// Explicitly set the veth to UP state, because netlink doesn't always do that on all the platforms with net.FlagUp.
 		// veth won't get a link local address unless it's set to UP state.
+		debugLog.Println("[Calico - linux_dataplane] netlink.LinkSetUp(hostVeth) start")
 		if err = netlink.LinkSetUp(hostVeth); err != nil {
 			return fmt.Errorf("failed to set %q up: %v", hostVethName, err)
 		}
-
+		debugLog.Println("[Calico - linux_dataplane] netlink.LinkByName(contVethName) start")
 		contVeth, err := netlink.LinkByName(contVethName)
 		if err != nil {
 			err = fmt.Errorf("failed to lookup %q: %v", contVethName, err)
 			return err
 		}
-
+		debugLog.Println("[Calico - linux_dataplane] contVeth.Attrs().HardwareAddr start")
 		// Fetch the MAC from the container Veth. This is needed by Calico.
 		contVethMAC = contVeth.Attrs().HardwareAddr.String()
 		d.logger.WithField("MAC", contVethMAC).Debug("Found MAC for container veth")
@@ -139,8 +141,10 @@ func (d *linuxDataplane) DoNetworking(
 		// Do the per-IP version set-up.  Add gateway routes etc.
 		if hasIPv4 {
 			// Add a connected route to a dummy next hop so that a default route can be set
+			debugLog.Println("[Calico - linux_dataplane] net.IPv4 start")
 			gw := net.IPv4(169, 254, 1, 1)
 			gwNet := &net.IPNet{IP: gw, Mask: net.CIDRMask(32, 32)}
+			debugLog.Println("[Calico - linux_dataplane] netlink.RouteAdd start")
 			err := netlink.RouteAdd(
 				&netlink.Route{
 					LinkIndex: contVeth.Attrs().Index,
@@ -159,6 +163,7 @@ func (d *linuxDataplane) DoNetworking(
 					continue
 				}
 				d.logger.WithField("route", r).Debug("Adding IPv4 route")
+				debugLog.Println("[Calico - linux_dataplane] ip.AddRoute start")
 				if err = ip.AddRoute(r, gw, contVeth); err != nil {
 					return fmt.Errorf("failed to add IPv4 route for %v via %v: %v", r, gw, err)
 				}
@@ -227,18 +232,20 @@ func (d *linuxDataplane) DoNetworking(
 		}
 
 		// Now add the IPs to the container side of the veth.
+		debugLog.Println("[Calico - linux_dataplane] AddrAdd start")
 		for _, addr := range result.IPs {
 			if err = netlink.AddrAdd(contVeth, &netlink.Addr{IPNet: &addr.Address}); err != nil {
 				return fmt.Errorf("failed to add IP addr to %q: %v", contVeth, err)
 			}
 		}
-
+		debugLog.Println("[Calico - linux_dataplane] configureContainerSysctls start")
 		if err = d.configureContainerSysctls(hasIPv4, hasIPv6); err != nil {
 			return fmt.Errorf("error configuring sysctls for the container netns, error: %s", err)
 		}
 
 		// Now that the everything has been successfully set up in the container, move the "host" end of the
 		// veth into the host namespace.
+		debugLog.Println("[Calico - linux_dataplane] LinkSetNsFd start")
 		if err = netlink.LinkSetNsFd(hostVeth, int(hostNS.Fd())); err != nil {
 			return fmt.Errorf("failed to move veth to host netns: %v", err)
 		}
@@ -258,11 +265,12 @@ func (d *linuxDataplane) DoNetworking(
 
 	// Moving a veth between namespaces always leaves it in the "DOWN" state. Set it back to "UP" now that we're
 	// back in the host namespace.
+	debugLog.Println("[Calico - linux_dataplane] LinkByName start")
 	hostVeth, err := netlink.LinkByName(hostVethName)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to lookup %q: %v", hostVethName, err)
 	}
-
+	debugLog.Println("[Calico - linux_dataplane] LinkSetUp start")
 	if err = netlink.LinkSetUp(hostVeth); err != nil {
 		return "", "", fmt.Errorf("failed to set %q up: %v", hostVethName, err)
 	}

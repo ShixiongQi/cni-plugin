@@ -104,8 +104,8 @@ func testConnection() error {
 
 func cmdAdd(args *skel.CmdArgs) error {
 
-	logFileName := "/users/sqi009/calico_cmdAdd_info.log"
-	logFile, _  := os.Create(logFileName)
+	logFileName := "/users/sqi009/calico-startup-time.log"
+	logFile, _  := os.OpenFile(logFileName,os.O_RDWR|os.O_APPEND|os.O_CREATE,0644)
 	defer logFile.Close()
 	debugLog := log.New(logFile,"[Info: plugin.go]",log.Lmicroseconds)
 	debugLog.Println("[calico] cmdAdd start")
@@ -128,22 +128,25 @@ func cmdAdd(args *skel.CmdArgs) error {
 	}
 
 	// Determine which node name to use.
+	debugLog.Println("[calico] utils.DetermineNodename start")
 	nodename := utils.DetermineNodename(conf)
 
 	// Extract WEP identifiers such as pod name, pod namespace (for k8s), containerID, IfName.
+	debugLog.Println("[calico] utils.GetIdentifiers start")
 	wepIDs, err := utils.GetIdentifiers(args, nodename)
 	if err != nil {
 		return err
 	}
 
 	logrus.WithField("EndpointIDs", wepIDs).Info("Extracted identifiers")
-
+	debugLog.Println("[calico] utils.CreateClient start")
 	calicoClient, err := utils.CreateClient(conf)
 	if err != nil {
 		return err
 	}
 
 	ctx := context.Background()
+	debugLog.Println("[calico] calicoClient.ClusterInformation().Get start")
 	ci, err := calicoClient.ClusterInformation().Get(ctx, "default", options.GetOptions{})
 	if err != nil {
 		return fmt.Errorf("error getting ClusterInformation: %v", err)
@@ -161,12 +164,14 @@ func cmdAdd(args *skel.CmdArgs) error {
 
 	// Calculate the workload name prefix from the WEP specific identifiers
 	// for the given orchestrator.
+	debugLog.Println("[calico] wepIDs.CalculateWorkloadEndpointName start")
 	wepPrefix, err := wepIDs.CalculateWorkloadEndpointName(true)
 	if err != nil {
 		return fmt.Errorf("error constructing WorkloadEndpoint prefix: %s", err)
 	}
 
 	// Check if there's an existing endpoint by listing the existing endpoints based on the WEP name prefix.
+	debugLog.Println("[calico] calicoClient.WorkloadEndpoints().List start")
 	endpoints, err := calicoClient.WorkloadEndpoints().List(ctx, options.ListOptions{Name: wepPrefix, Namespace: wepIDs.Namespace, Prefix: true})
 	if err != nil {
 		return err
