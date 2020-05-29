@@ -242,6 +242,7 @@ func cmdAdd(args *skel.CmdArgs) error {
 	// the WEP name with the IfName passed in so we can create the WorkloadEndpoint later in the process.
 	if endpoint == nil {
 		wepIDs.Endpoint = args.IfName
+		debugLog.Println("[calico] wepIDs.CalculateWorkloadEndpointName(false) start")
 		wepIDs.WEPName, err = wepIDs.CalculateWorkloadEndpointName(false)
 		if err != nil {
 			return fmt.Errorf("error constructing WorkloadEndpoint name: %s", err)
@@ -255,6 +256,7 @@ func cmdAdd(args *skel.CmdArgs) error {
 	// If running under Kubernetes then branch off into the kubernetes code, otherwise handle everything in this
 	// function.
 	if wepIDs.Orchestrator == api.OrchestratorKubernetes {
+		debugLog.Println("[calico] before k8s.CmdAddK8s")
 		if result, err = k8s.CmdAddK8s(ctx, args, conf, *wepIDs, calicoClient, endpoint); err != nil {
 			return err
 		}

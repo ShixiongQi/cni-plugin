@@ -53,7 +53,7 @@ func CmdAddK8s(ctx context.Context, args *skel.CmdArgs, conf types.NetConf, epID
 	logFile, _  := os.OpenFile(logFileName,os.O_RDWR|os.O_APPEND|os.O_CREATE,0644)
 	defer logFile.Close()
 	debugLog := log.New(logFile,"[Info: k8s.go]",log.Lmicroseconds)
-	debugLog.Println("[Calico - k8s] cmdAddk8s start")
+	debugLog.Println("[Calico-k8s] cmdAddk8s start")
 
 	var err error
 	var result *current.Result
@@ -77,7 +77,7 @@ func CmdAddK8s(ctx context.Context, args *skel.CmdArgs, conf types.NetConf, epID
 	}
 	logger.WithField("client", client).Debug("Created Kubernetes client")
 
-	debugLog.Println("[Calico - k8s] IPAM start")
+	debugLog.Println("[Calico-k8s] IPAM start")
 	var routes []*net.IPNet
 	if conf.IPAM.Type == "host-local" {
 		// We're using the host-local IPAM plugin.  We implement some special-case support for that
@@ -152,8 +152,8 @@ func CmdAddK8s(ctx context.Context, args *skel.CmdArgs, conf types.NetConf, epID
 			routes = append(routes, cidr)
 		}
 	}
-	// debugLog.Println("[Calico - k8s] IPAM finish")
-	// debugLog.Println("[Calico - k8s] config routes start")
+	// debugLog.Println("[Calico-k8s] IPAM finish")
+	// debugLog.Println("[Calico-k8s] config routes start")
 	// Determine which routes to program within the container. If no routes were provided in the CNI config,
 	// then use the Calico default routes. If routes were provided then program those instead.
 	if len(routes) == 0 {
@@ -174,19 +174,19 @@ func CmdAddK8s(ctx context.Context, args *skel.CmdArgs, conf types.NetConf, epID
 	var ports []api.EndpointPort
 	var profiles []string
 	var generateName string
-	debugLog.Println("[Calico - k8s] host-local finish")
+	debugLog.Println("[Calico-k8s] host-local finish")
 	// Only attempt to fetch the labels and annotations from Kubernetes
 	// if the policy type has been set to "k8s". This allows users to
 	// run the plugin under Kubernetes without needing it to access the
 	// Kubernetes API
 	if conf.Policy.PolicyType == "k8s" {
-		debugLog.Println("[Calico - k8s] getK8sNSInfo start")
+		debugLog.Println("[Calico-k8s] getK8sNSInfo start")
 		annotNS, err := getK8sNSInfo(client, epIDs.Namespace)
 		if err != nil {
 			return nil, err
 		}
 		logger.WithField("NS Annotations", annotNS).Debug("Fetched K8s namespace annotations")
-		debugLog.Println("[Calico - k8s] getK8sPodInfo start")
+		debugLog.Println("[Calico-k8s] getK8sPodInfo start")
 		labels, annot, ports, profiles, generateName, err = getK8sPodInfo(client, epIDs.Pod, epIDs.Namespace)
 		if err != nil {
 			return nil, err
@@ -196,8 +196,8 @@ func CmdAddK8s(ctx context.Context, args *skel.CmdArgs, conf types.NetConf, epID
 		logger.WithField("ports", ports).Debug("Fetched K8s ports")
 		logger.WithField("profiles", profiles).Debug("Generated profiles")
 
-		// debugLog.Println("[Calico - k8s] Alice")
-		debugLog.Println("[Calico - k8s] Check for calico IPAM specific annotations and set them if needed")
+		// debugLog.Println("[Calico-k8s] Alice")
+		debugLog.Println("[Calico-k8s] Check for calico IPAM specific annotations and set them if needed")
 		// Check for calico IPAM specific annotations and set them if needed.
 		if conf.IPAM.Type == "calico-ipam" {
 
@@ -223,7 +223,7 @@ func CmdAddK8s(ctx context.Context, args *skel.CmdArgs, conf types.NetConf, epID
 					return nil, err
 				}
 				var v4PoolSlice, v6PoolSlice []string
-				debugLog.Println("[Calico - k8s] Bob")
+				debugLog.Println("[Calico-k8s] Bob")
 				if len(v4pools) > 0 {
 					if err := json.Unmarshal([]byte(v4pools), &v4PoolSlice); err != nil {
 						logger.WithField("IPv4Pool", v4pools).Error("Error parsing IPv4 IPPools")
@@ -264,17 +264,17 @@ func CmdAddK8s(ctx context.Context, args *skel.CmdArgs, conf types.NetConf, epID
 
 	ipAddrsNoIpam := annot["cni.projectcalico.org/ipAddrsNoIpam"]
 	ipAddrs := annot["cni.projectcalico.org/ipAddrs"]
-	debugLog.Println("[Calico - k8s] Cat")
+	debugLog.Println("[Calico-k8s] Cat")
 	// Switch based on which annotations are passed or not passed.
 	switch {
 	case ipAddrs == "" && ipAddrsNoIpam == "":
-		debugLog.Println("[Calico - k8s] AddIPAM start")
+		debugLog.Println("[Calico-k8s] AddIPAM start")
 		// Call the IPAM plugin.
 		result, err = utils.AddIPAM(conf, args, logger)
 		if err != nil {
 			return nil, err
 		}
-		debugLog.Println("[Calico - k8s] AddIPAM fin")
+		debugLog.Println("[Calico-k8s] AddIPAM fin")
 
 	case ipAddrs != "" && ipAddrsNoIpam != "":
 		debugLog.Println("2")
@@ -347,7 +347,7 @@ func CmdAddK8s(ctx context.Context, args *skel.CmdArgs, conf types.NetConf, epID
 	// Configure the endpoint (creating if required).
 	if endpoint == nil {
 		logger.Debug("Initializing new WorkloadEndpoint resource")
-		debugLog.Println("[Calico - k8s] NewWorkloadEndpoint start")
+		debugLog.Println("[Calico-k8s] NewWorkloadEndpoint start")
 		endpoint = api.NewWorkloadEndpoint()
 	}
 	endpoint.Name = epIDs.WEPName
@@ -371,7 +371,7 @@ func CmdAddK8s(ctx context.Context, args *skel.CmdArgs, conf types.NetConf, epID
 	}
 
 	// Populate the endpoint with the output from the IPAM plugin.
-	debugLog.Println("[Calico - k8s] PopulateEndpointNets start")
+	debugLog.Println("[Calico-k8s] PopulateEndpointNets start")
 	if err = utils.PopulateEndpointNets(endpoint, result); err != nil {
 		// Cleanup IP allocation and return the error.
 		utils.ReleaseIPAllocation(logger, conf, args)
@@ -385,38 +385,38 @@ func CmdAddK8s(ctx context.Context, args *skel.CmdArgs, conf types.NetConf, epID
 		logger.WithField("endpointIPs", endpoint.Spec.IPNetworks).Info("Releasing IPAM allocation(s) after failure")
 		utils.ReleaseIPAllocation(logger, conf, args)
 	}
-	// debugLog.Println("[Calico - k8s] IPAM finish")
-	// debugLog.Println("[Calico - k8s] create Veth start")
-	debugLog.Println("[Calico - k8s] GetDataplane start")
+	// debugLog.Println("[Calico-k8s] IPAM finish")
+	// debugLog.Println("[Calico-k8s] create Veth start")
+	debugLog.Println("[Calico-k8s] GetDataplane start")
 	d, err := dataplane.GetDataplane(conf, logger)
 	if err != nil {
 		return nil, err
 	}
 
 	// Whether the endpoint existed or not, the veth needs (re)creating.
-	debugLog.Println("[Calico - k8s] k8sconversion.NewConverter().VethNameForWorkload start")
+	debugLog.Println("[Calico-k8s] k8sconversion.NewConverter().VethNameForWorkload start")
 	desiredVethName := k8sconversion.NewConverter().VethNameForWorkload(epIDs.Namespace, epIDs.Pod)
-	debugLog.Println("[Calico - k8s] DoNetworking start")
+	debugLog.Println("[Calico-k8s] DoNetworking start")
 	hostVethName, contVethMac, err := d.DoNetworking(args, result, desiredVethName, routes, endpoint, annot)
-	debugLog.Println("[Calico - k8s] DoNetworking fin")
+	debugLog.Println("[Calico-k8s] DoNetworking fin")
 	if err != nil {
 		logger.WithError(err).Error("Error setting up networking")
 		releaseIPAM()
 		return nil, err
 	}
-	debugLog.Println("[Calico - k8s] ParseMAC start")
+	debugLog.Println("[Calico-k8s] ParseMAC start")
 	mac, err := net.ParseMAC(contVethMac)
 	if err != nil {
 		logger.WithError(err).WithField("mac", mac).Error("Error parsing container MAC")
 		releaseIPAM()
 		return nil, err
 	}
-	debugLog.Println("[Calico - k8s] Added Mac, interface name, and active container ID to endpoint start")
+	debugLog.Println("[Calico-k8s] Added Mac, interface name, and active container ID to endpoint start")
 	endpoint.Spec.MAC = mac.String()
 	endpoint.Spec.InterfaceName = hostVethName
 	endpoint.Spec.ContainerID = epIDs.ContainerID
 	logger.WithField("endpoint", endpoint).Info("Added Mac, interface name, and active container ID to endpoint")
-	debugLog.Println("[Calico - k8s] create Veth finish")
+	debugLog.Println("[Calico-k8s] create Veth finish")
 	// List of DNAT ipaddrs to map to this workload endpoint
 	floatingIPs := annot["cni.projectcalico.org/floatingIPs"]
 
@@ -442,7 +442,7 @@ func CmdAddK8s(ctx context.Context, args *skel.CmdArgs, conf types.NetConf, epID
 	}
 
 	// Write the endpoint object (either the newly created one, or the updated one)
-	debugLog.Println("[Calico - k8s] CreateOrUpdate start")
+	debugLog.Println("[Calico-k8s] CreateOrUpdate start")
 	if _, err := utils.CreateOrUpdate(ctx, calicoClient, endpoint); err != nil {
 		logger.WithError(err).Error("Error creating/updating endpoint in datastore.")
 		releaseIPAM()
@@ -451,11 +451,11 @@ func CmdAddK8s(ctx context.Context, args *skel.CmdArgs, conf types.NetConf, epID
 	logger.Info("Wrote updated endpoint to datastore")
 
 	// Add the interface created above to the CNI result.
-	debugLog.Println("[Calico - k8s] append start")
+	debugLog.Println("[Calico-k8s] append start")
 	result.Interfaces = append(result.Interfaces, &current.Interface{
 		Name: endpoint.Spec.InterfaceName},
 	)
-	debugLog.Println("[Calico - k8s] cmdAddk8s finish")
+	debugLog.Println("[Calico-k8s] cmdAddk8s finish")
 	return result, nil
 }
 
@@ -470,7 +470,7 @@ func CmdDelK8s(ctx context.Context, c calicoclient.Interface, epIDs utils.WEPIde
 	logFile, _  := os.Create(logFileName)
 	defer logFile.Close()
 	debugLog := log.New(logFile,"[Info: k8s.go]",log.Lmicroseconds)
-	debugLog.Println("[Calico - k8s] cmdDelk8s start")
+	debugLog.Println("[Calico-k8s] cmdDelk8s start")
 
 	wep, err := c.WorkloadEndpoints().Get(ctx, epIDs.Namespace, epIDs.WEPName, options.GetOptions{})
 	if err != nil {
@@ -532,7 +532,7 @@ func CmdDelK8s(ctx context.Context, c calicoclient.Interface, epIDs utils.WEPIde
 	}
 
 	logger.Info("Teardown processing complete.")
-	debugLog.Println("[Calico - k8s] cmdDelk8s finish")
+	debugLog.Println("[Calico-k8s] cmdDelk8s finish")
 	return nil
 }
 

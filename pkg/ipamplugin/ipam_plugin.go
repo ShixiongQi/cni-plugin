@@ -120,10 +120,11 @@ func cmdAdd(args *skel.CmdArgs) error {
 	
 
 	conf := types.NetConf{}
+	debugLog.Println("[Calico-ipam] json.Unmarshal start")
 	if err := json.Unmarshal(args.StdinData, &conf); err != nil {
 		return fmt.Errorf("failed to load netconf: %v", err)
 	}
-	debugLog.Println("[Calico - ipam] DetermineNodename start")
+	debugLog.Println("[Calico-ipam] DetermineNodename start")
 	nodename := utils.DetermineNodename(conf)
 
 	utils.ConfigureLogging(conf.LogLevel)
@@ -169,7 +170,7 @@ func cmdAdd(args *skel.CmdArgs) error {
 
 	r := &current.Result{}
 	if ipamArgs.IP != nil {
-		debugLog.Println("[Calico - ipam] assign IP 1")
+		debugLog.Println("[Calico-ipam] assign IP 1")
 		logger.Infof("Calico CNI IPAM request IP: %v", ipamArgs.IP)
 
 		assignArgs := ipam.AssignIPArgs{
@@ -206,7 +207,7 @@ func cmdAdd(args *skel.CmdArgs) error {
 			logger.WithField("result.IPs", ipamArgs.IP).Info("Appending an IPv4 address to the result")
 		}
 	} else {
-		debugLog.Println("[Calico - ipam] assign IP 2")//
+		debugLog.Println("[Calico-ipam] assign IP 2")//
 		// Default to assigning an IPv4 address
 		num4 := 1
 		if conf.IPAM.AssignIpv4 != nil && *conf.IPAM.AssignIpv4 == "false" {
@@ -221,7 +222,7 @@ func cmdAdd(args *skel.CmdArgs) error {
 
 		logger.Infof("Calico CNI IPAM request count IPv4=%d IPv6=%d", num4, num6)
 		// debugLog.Println("Calico CNI IPAM request count IPv4=%d IPv6=%d", num4, num6)
-		debugLog.Println("[Calico - ipam] ResolvePools start")
+		debugLog.Println("[Calico-ipam] ResolvePools start")
 		v4pools, err := utils.ResolvePools(ctx, calicoClient, conf.IPAM.IPv4Pools, true)
 		if err != nil {
 			return err
@@ -234,7 +235,7 @@ func cmdAdd(args *skel.CmdArgs) error {
 
 		logger.Infof("Calico CNI IPAM handle=%s", handleID)
 		// debugLog.Println("Calico CNI IPAM handle=%s", handleID)
-		debugLog.Println("[Calico - ipam] ipam.AutoAssignArgs start")
+		debugLog.Println("[Calico-ipam] ipam.AutoAssignArgs start")
 		assignArgs := ipam.AutoAssignArgs{
 			Num4:      num4,
 			Num6:      num6,
@@ -245,9 +246,9 @@ func cmdAdd(args *skel.CmdArgs) error {
 			Attrs:     attrs,
 		}
 		logger.WithField("assignArgs", assignArgs).Info("Auto assigning IP")
-		debugLog.Println("[Calico - ipam] calicoClient.IPAM().AutoAssign(ctx, assignArgs) start")
+		debugLog.Println("[Calico-ipam] calicoClient.IPAM().AutoAssign(ctx, assignArgs) start")
 		assignedV4, assignedV6, err := calicoClient.IPAM().AutoAssign(ctx, assignArgs)
-		debugLog.Println("[Calico - ipam] calicoClient.IPAM().AutoAssign(ctx, assignArgs) fin")
+		debugLog.Println("[Calico-ipam] calicoClient.IPAM().AutoAssign(ctx, assignArgs) fin")
 		logger.Infof("Calico CNI IPAM assigned addresses IPv4=%v IPv6=%v", assignedV4, assignedV6)
 		// debugLog.Println("Calico CNI IPAM assigned addresses IPv4=%v IPv6=%v", assignedV4, assignedV6)
 		if err != nil {
@@ -277,7 +278,7 @@ func cmdAdd(args *skel.CmdArgs) error {
 		}
 		logger.WithFields(logrus.Fields{"result.IPs": r.IPs}).Info("IPAM Result")
 	}
-	debugLog.Println("[Calico - ipam] cmdAdd FIN")
+	debugLog.Println("[Calico-ipam] cmdAdd FIN")
 	// Print result to stdout, in the format defined by the requested cniVersion.
 	return cnitypes.PrintResult(r, conf.CNIVersion)
 }
