@@ -246,9 +246,9 @@ func cmdAdd(args *skel.CmdArgs) error {
 			Attrs:     attrs,
 		}
 		logger.WithField("assignArgs", assignArgs).Info("Auto assigning IP")
-		debugLog.Println("[Calico-ipam] calicoClient.IPAM().AutoAssign(ctx, assignArgs) start")
+		debugLog.Println("[Calico-ipam] calicoClient.IPAM().AutoAssign(ctx,assignArgs) start")
 		assignedV4, assignedV6, err := calicoClient.IPAM().AutoAssign(ctx, assignArgs)
-		debugLog.Println("[Calico-ipam] calicoClient.IPAM().AutoAssign(ctx, assignArgs) fin")
+		debugLog.Println("[Calico-ipam] calicoClient.IPAM().AutoAssign(ctx,assignArgs) fin")
 		logger.Infof("Calico CNI IPAM assigned addresses IPv4=%v IPv6=%v", assignedV4, assignedV6)
 		// debugLog.Println("Calico CNI IPAM assigned addresses IPv4=%v IPv6=%v", assignedV4, assignedV6)
 		if err != nil {
