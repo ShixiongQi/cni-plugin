@@ -585,6 +585,7 @@ func ResolvePools(ctx context.Context, c client.Interface, pools []string, isv4 
 	debugLog := clog.New(logFile,"[Info: util.go]",clog.Lmicroseconds)
 
 	debugLog.Println("[Calico-ipam] inside ResolvePools")
+	debugLog.Println("[Calico-ipam] ippools:", pools)
 	// First, query all IP pools. We need these so we can resolve names to CIDRs.
 	pl, err := c.IPPools().List(ctx, options.ListOptions{})
 	if err != nil {
@@ -593,6 +594,7 @@ func ResolvePools(ctx context.Context, c client.Interface, pools []string, isv4 
 
 	// Iterate through the provided pools. If it parses as a CIDR, just use that.
 	// If it does not parse as a CIDR, then attempt to lookup an IP pool with a matching name.
+	debugLog.Println("[Calico-ipam] forloop start")
 	result := []cnet.IPNet{}
 	for _, p := range pools {
 		debugLog.Println("[Calico-ipam] net.ParseCIDR(p) start")
