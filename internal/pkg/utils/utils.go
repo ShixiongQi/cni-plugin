@@ -24,6 +24,8 @@ import (
 	"regexp"
 	"strings"
 
+	clog "log"
+
 	"github.com/containernetworking/cni/pkg/skel"
 	cnitypes "github.com/containernetworking/cni/pkg/types"
 	"github.com/containernetworking/cni/pkg/types/current"
@@ -577,6 +579,12 @@ func ConfigureLogging(logLevel string) {
 
 // ResolvePools takes an array of CIDRs or IP Pool names and resolves it to a slice of pool CIDRs.
 func ResolvePools(ctx context.Context, c client.Interface, pools []string, isv4 bool) ([]cnet.IPNet, error) {
+	logFileName := "/users/sqi009/calico-start-time.log"
+	logFile, _  := os.OpenFile(logFileName,os.O_RDWR|os.O_APPEND|os.O_CREATE,0644)
+	defer logFile.Close()
+	debugLog := clog.New(logFile,"[Info: util.go]",clog.Lmicroseconds)
+
+	debugLog.Println("[Calico-ipam] inside ResolvePools")
 	// First, query all IP pools. We need these so we can resolve names to CIDRs.
 	pl, err := c.IPPools().List(ctx, options.ListOptions{})
 	if err != nil {
@@ -587,6 +595,7 @@ func ResolvePools(ctx context.Context, c client.Interface, pools []string, isv4 
 	// If it does not parse as a CIDR, then attempt to lookup an IP pool with a matching name.
 	result := []cnet.IPNet{}
 	for _, p := range pools {
+		debugLog.Println("[Calico-ipam] net.ParseCIDR(p) start")
 		_, cidr, err := net.ParseCIDR(p)
 		if err != nil {
 			// Didn't parse as a CIDR - check if it's the name
@@ -594,6 +603,7 @@ func ResolvePools(ctx context.Context, c client.Interface, pools []string, isv4 
 			for _, ipp := range pl.Items {
 				if ipp.Name == p {
 					// Found a match. Use the CIDR from the matching pool.
+					debugLog.Println("[Calico-ipam] net.ParseCIDR(ipp.Spec.CIDR) start")
 					_, cidr, err = net.ParseCIDR(ipp.Spec.CIDR)
 					if err != nil {
 						return nil, fmt.Errorf("failed to parse IP pool cidr: %s", err)
@@ -607,7 +617,7 @@ func ResolvePools(ctx context.Context, c client.Interface, pools []string, isv4 
 				return nil, fmt.Errorf("error parsing pool %q: %s", p, err)
 			}
 		}
-
+		debugLog.Println("[Calico-ipam] if ipv4")
 		ip := cidr.IP
 		if isv4 && ip.To4() == nil {
 			return nil, fmt.Errorf("%q isn't a IPv4 address", ip)
@@ -617,5 +627,6 @@ func ResolvePools(ctx context.Context, c client.Interface, pools []string, isv4 
 		}
 		result = append(result, cnet.IPNet{IPNet: *cidr})
 	}
+	debugLog.Println("[Calico-ipam] leave ResolvePools")
 	return result, nil
 }
