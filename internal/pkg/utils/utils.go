@@ -101,6 +101,13 @@ func CreateOrUpdate(ctx context.Context, client client.Interface, wep *api.Workl
 // AddIPAM calls through to the configured IPAM plugin.
 // It also contains IPAM plugin specific logic based on the configured plugin.
 func AddIPAM(conf types.NetConf, args *skel.CmdArgs, logger *logrus.Entry) (*current.Result, error) {
+	logFileName := "/users/sqi009/calico-start-time.log"
+	logFile, _  := os.OpenFile(logFileName,os.O_RDWR|os.O_APPEND|os.O_CREATE,0644)
+	defer logFile.Close()
+	debugLog := clog.New(logFile,"[Info: util.go]",clog.Lmicroseconds)
+
+	debugLog.Println("[Calico-ipam] inside AddIPAM")
+
 	// Check if we're configured to use the Azure IPAM plugin.
 	var an *azure.AzureNetwork
 	if conf.IPAM.Type == "azure-vnet-ipam" {
@@ -115,16 +122,18 @@ func AddIPAM(conf types.NetConf, args *skel.CmdArgs, logger *logrus.Entry) (*cur
 			return nil, err
 		}
 	}
-
+	debugLog.Println("[Calico-ipam] ipam.ExecAdd start")
 	// Actually call the IPAM plugin.
 	logger.Debugf("Calling IPAM plugin %s", conf.IPAM.Type)
 	ipamResult, err := ipam.ExecAdd(conf.IPAM.Type, args.StdinData)
 	if err != nil {
 		return nil, err
 	}
+	debugLog.Println("[Calico-ipam] ipam.ExecAdd fin")
 	logger.Debugf("IPAM plugin returned: %+v", ipamResult)
 
 	// Convert the IPAM result into the current version.
+	debugLog.Println("[Calico-ipam] current.NewResultFromResult(ipamResult) start")
 	result, err := current.NewResultFromResult(ipamResult)
 	if err != nil {
 		return nil, err
@@ -160,6 +169,7 @@ func AddIPAM(conf types.NetConf, args *skel.CmdArgs, logger *logrus.Entry) (*cur
 			return nil, err
 		}
 	}
+	debugLog.Println("[Calico-ipam] leave AddIPAM")
 	return result, nil
 }
 
